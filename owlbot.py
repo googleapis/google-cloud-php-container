@@ -14,29 +14,25 @@
 
 """This script is used to synthesize generated parts of this library."""
 
-import synthtool as s
-import synthtool.gcp as gcp
 import logging
+from pathlib import Path
+import subprocess
+
+import synthtool as s
+from synthtool.languages import php
+from synthtool import _tracked_paths
 
 logging.basicConfig(level=logging.DEBUG)
 
-gapic = gcp.GAPICBazel()
-common = gcp.CommonTemplates()
+src = Path(f"../{php.STAGING_DIR}/Container").resolve()
+dest = Path().resolve()
 
-v1_library = gapic.php_library(
-    service='container',
-    version='v1',
-    bazel_target=f'//google/container/v1:google-cloud-container-v1-php')
+# Added so that we can pass copy_excludes in the owlbot_main() call
+_tracked_paths.add(src)
 
-# copy all src including partial veneer classes
-s.move(v1_library / 'src')
+php.owlbot_main(src=src, dest=dest)
 
-# copy proto files to src also
-s.move(v1_library / 'proto/src/Google/Cloud/Container', 'src/')
-s.move(v1_library / 'tests/')
 
-# copy GPBMetadata file to metadata
-s.move(v1_library / 'proto/src/GPBMetadata/Google/Container', 'metadata/')
 
 # document and utilize apiEndpoint instead of serviceAddress
 s.replace(
@@ -61,20 +57,6 @@ s.replace(
     'src/V1/**/*Client.php',
     r'^(\s+\*\n)?\s+\*\s@experimental\n',
     '')
-
-# fix year
-s.replace(
-    '**/Gapic/*GapicClient.php',
-    r'Copyright \d{4}',
-    'Copyright 2017')
-s.replace(
-    '**/V1/ClusterManagerClient.php',
-    r'Copyright \d{4}',
-    'Copyright 2017')
-s.replace(
-    'tests/**/V1/*Test.php',
-    r'Copyright \d{4}',
-    'Copyright 2018')
 
 # Fix class references in gapic samples
 for version in ['V1']:
